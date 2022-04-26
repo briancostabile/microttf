@@ -1,0 +1,133 @@
+################################################################################
+# MIT License
+#
+# Copyright (c) 2022 Brian Costabile
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+#-------------------------------------------------------
+# HOST build platform selection and customizations
+ifndef HOST
+
+# Windows hosts
+ifeq ($(OS),Windows_NT)
+UNAME_O = $(shell uname -o)
+ifeq ($(UNAME_O),Msys)
+HOST := mingw
+override VERBOSE =
+endif
+ifeq ($(UNAME_O),Cygwin)
+HOST := cygwin
+endif
+
+# Non-windows hosts
+else
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+HOST := linux
+endif
+ifeq ($(UNAME_S),Darwin)
+HOST := macosx
+endif
+endif
+
+endif # ifndef HOST
+
+
+#-------------------------------------------------------
+# Set Verbose flag
+ifneq (,$(VERBOSE))
+export Q =
+export VERBOSE
+else
+export Q = @
+endif
+
+#-------------------------------------------------------
+# Default Debug to disabled
+ifndef DEBUG
+DEBUG := 1
+endif
+
+
+#-------------------------------------------------------
+BUILD_ROOT = ./build
+BUILD_DIR = $(BUILD_ROOT)
+
+
+#-------------------------------------------------------
+# Tools can be overridden by configuration files
+RM         = $(Q)rm -rf
+NULLDEVICE = /dev/null
+ECHO       = @echo
+MKDIR      = $(Q)mkdir -p
+PYTHON     = $(Q)python3
+CAT        = $(Q)cat
+
+
+TC = gcc
+CFLAGS += -std=gnu99
+
+# Add debug symbols with the DEBUG flag and disable optimizations
+ifeq (1,$(DEBUG))
+CFLAGS += -g
+endif
+
+CC ?= gcc
+AR ?= ar
+
+
+# Define the common 'archive' function.
+archive=$(Q)$(AR) rc $@ $(1)
+
+
+######################################################
+# Defines for each library
+#########
+
+# Support Library build options should be overridden by configuration files
+BUILD_UTTF ?= yes
+LIBS :=
+INCS := 
+
+#----------------------------------
+# microttf is a Library
+ifeq (yes, $(BUILD_UTTF))
+UTTF_ROOT     := uttf
+UTTF_SRC_ROOT := $(UTTF_ROOT)
+UTTF_INC_ROOT := $(UTTF_ROOT)
+UTTF_PUB_INC  := -I $(UTTF_INC_ROOT)
+UTTF_LIB      := $(BUILD_DIR)/uttf.lib
+UTTF_SRCS     += $(wildcard $(UTTF_SRC_ROOT)/*.c)
+UTTF_OBJS     := $(patsubst %.c,$(BUILD_DIR)/%.o,$(UTTF_SRCS))
+UTTF_IFLAGS   := $(UTTF_PUB_INC)
+IFLAGS        += $(UTTF_PUB_INC)
+endif
+
+
+#----------------------------------
+# otfdump is a program to test uttf
+OTFDUMP_ROOT     := otfdump
+OTFDUMP_SRC_ROOT := $(OTFDUMP_ROOT)
+OTFDUMP_INC_ROOT := $(OTFDUMP_ROOT)
+OTFDUMP_PUB_INC  := -I $(OTFDUMP_INC_ROOT)
+OTFDUMP_SRCS     += $(wildcard $(OTFDUMP_SRC_ROOT)/*.c)
+OTFDUMP_OBJS     := $(patsubst %.c,$(BUILD_DIR)/%.o,$(OTFDUMP_SRCS))
+OTFDUMP_IFLAGS   := $(OTFDUMP_PUB_INC)
+IFLAGS           += $(OTFDUMP_PUB_INC)
